@@ -1,0 +1,6 @@
+[submodule "openh264"]
+	path = openh264
+	url = https://github.com/cisco/openh264.git
+[submodule "x264"]
+	path = x264
+	url = https://code.videolan.org/videolan/x264.git

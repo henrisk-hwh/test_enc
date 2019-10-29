@@ -1,0 +1,4 @@
+build/
+nemo-test/bin/
+nemo-test/lib/
+nemo-test/include/
