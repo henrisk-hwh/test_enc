@@ -14,6 +14,9 @@ make -j32
 make install
 make install install-lib-static
 
-cd ../build
+
+cd ../
+mkdir -p build
+cd build
 cmake ../nemo-test/test/
 make
