@@ -5,7 +5,7 @@
 #include <wels/codec_api.h>
 
 
-static void openh264TraceCallback(void *ctx, int level, const char *string)
+static void openh264TraceCallback(void *, int, const char *string)
 {
     LOGI("[Openh264EncoderImpl] %s", string);
 }
@@ -28,15 +28,14 @@ private:
     bool open_encoder();
     void close_encoder();
 private:
-    bool _initialized;
+    bool _initialized = false;
 
-    ISVCEncoder *_pSVCEncoder;
-    SFrameBSInfo *_sFbi;
-    WelsTraceCallback _pFunc;
-
-    videoCodecConfig &_config;
+    ISVCEncoder *_pSVCEncoder = NULL;
+    SFrameBSInfo *_sFbi = NULL;
+    WelsTraceCallback _pFunc = NULL;
 
     IvideoEncoderObserver *_observer = NULL;
+    videoCodecConfig &_config;
 };
 
 void Openh264EncoderImpl::close_encoder()
@@ -147,10 +146,7 @@ bool Openh264EncoderImpl::open_encoder()
 
 Openh264EncoderImpl::Openh264EncoderImpl(videoCodecConfig &config, IvideoEncoderObserver *observer) :
     _observer(observer),
-    _config(config),
-    _initialized(false),
-    _pSVCEncoder(NULL),
-    _sFbi(NULL)
+    _config(config)
 {
     open_encoder();
 }
@@ -277,7 +273,7 @@ int Openh264EncoderImpl::encode(encodeFrameInfo &frameinfo)
 
 }
 
-void Openh264EncoderImpl::reconfig(videoCodecConfig &config)
+void Openh264EncoderImpl::reconfig(videoCodecConfig &)
 {
 
 }

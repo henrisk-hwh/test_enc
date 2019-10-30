@@ -3,6 +3,7 @@
 #include <video_codec_interface.h>
 #include <openh264_encoder.h>
 #include <x264_encoder.h>
+#include <minih264_encoder.h>
 
 long long current_us(void) {
     struct timeval tv_date;
@@ -18,6 +19,10 @@ IvideoEncoder *CreateVideoEncoder(videoCodecConfig config, IvideoEncoderObserver
             break;
         case TYPE_ENC_X264:
             encoder = new ENC_TEST::X264Encoder(config, observer);
+            break;
+        case TYPE_ENC_MINIH264:
+            encoder = new ENC_TEST::Minih264Encoder(config, observer);
+            break;
         case TYPE_ENC_HW_OMX:
         case TYPE_ENC_R58_OMX:
         case TYPE_ENC_MT8765_OMX:

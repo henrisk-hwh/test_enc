@@ -58,12 +58,14 @@ private:
     bool open_encoder();
     void close_encoder();
 private:
-    bool _initialized;
+    bool _initialized = false;
 
-    x264_t *_x264;
+    x264_t *_x264 = NULL;
     int _index = 0;
-    videoCodecConfig &_config;
+
     IvideoEncoderObserver *_observer = NULL;
+    videoCodecConfig &_config;
+
 };
 
 void X264EncoderImpl::close_encoder()
@@ -156,8 +158,7 @@ bool X264EncoderImpl::open_encoder()
 
 X264EncoderImpl::X264EncoderImpl(videoCodecConfig &config, IvideoEncoderObserver *observer) :
     _observer(observer),
-    _config(config),
-    _initialized(false)
+    _config(config)
 {
     open_encoder();
 }
@@ -249,7 +250,7 @@ int X264EncoderImpl::encode(encodeFrameInfo &frameinfo)
 
 }
 
-void X264EncoderImpl::reconfig(videoCodecConfig &config)
+void X264EncoderImpl::reconfig(videoCodecConfig &)
 {
 }
 

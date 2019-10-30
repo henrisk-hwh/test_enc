@@ -35,6 +35,7 @@
 enum EncoderType
 {
     TYPE_ENC_NONE,
+    TYPE_ENC_MINIH264,
     TYPE_ENC_OPENH264,
     TYPE_ENC_X264,
     TYPE_ENC_HW_OMX,
@@ -80,6 +81,8 @@ typedef struct videoCodecConfig {
     std::string roiFileName = "";
     int roiMbQpDelta = 2;
     int roiFrameQpDelta = 0;
+    
+    int speed = 10;
 } videoCodecConfig;
 
 typedef struct videoCodecInfo {
@@ -188,7 +191,7 @@ class Semaphore {
         }
 
         void notify() {
-            long long tick = current_us();
+            //long long tick = current_us();
             int count = 0;
             sem_getvalue(&mSem, &count);
             //LOGI(" >>>>>>>> before nofity : %d", count);
@@ -198,7 +201,7 @@ class Semaphore {
         }
 
         void wait(int timeout) {
-            long long tick = current_us();
+            //long long tick = current_us();
             int count = 0;
             sem_getvalue(&mSem, &count);
             //LOGI(" >>>>>>>> before wait : %d", count);
@@ -210,7 +213,7 @@ class Semaphore {
         }
 
         void wait() {
-            long long tick = current_us();
+            //long long tick = current_us();
             int count = 0;
             sem_getvalue(&mSem, &count);
             //LOGI(" <<<<<<<<< before wait : %d", count);

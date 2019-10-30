@@ -84,6 +84,9 @@ struct CodecConfig CodecConfigs[] = {
     {"rk3326-avc", TYPE_ENC_RK3326_OMX, false},
     {"rk3326-svc", TYPE_ENC_RK3326_OMX, true},
     {"x264-avc", TYPE_ENC_X264, false},
+    {"minih264-svc", TYPE_ENC_MINIH264, true},
+    {"minih264-avc", TYPE_ENC_MINIH264, false},
+    
 };
 
 void printHelp() {
@@ -191,7 +194,7 @@ void cmd(int argc, char *argv[], videoCodecConfig &config) {
                         incompatible = true;
                         config.type = codecconfig.type;
                         config.svc = codecconfig.svc;
-                        //config.encInfo = codecconfig.key;
+                        config.encInfo = codecconfig.key;
                         break;
                     }
                 }
@@ -236,6 +239,16 @@ void cmd(int argc, char *argv[], videoCodecConfig &config) {
                 printHelp();
                 exit(0);
             }
+        } else if(strcmp(argv[cnt], "-speed")==0) {
+            int cnt_=cnt+1;
+            if(cnt_<argc) {
+                sscanf(argv[cnt_], "%d", &config.speed);
+                LOGE("11run_param.encode_speed: %d %p", config.speed, &config.speed);
+            } else {
+                printf("Error. No speed arguments.\n");
+                printHelp();
+                exit(0);
+            }
         }
     }
 }
@@ -271,7 +284,6 @@ static int ReadLine (FILE *fp,char pVal[][64]) {
 static int parseFrameFace(FILE *fp,videoRoiRect *reg, int size)
 {
     char buf[4][64] = {0};
-    char *ptr = NULL;
     int nTag = 0;
     int faceNum = -1;
     int i;
@@ -342,34 +354,36 @@ public:
                 _encodeTs += 1000 / _config.fps;
             }
 
-            if (_config.gop != -1 &&
+            if (_config.gop == 0) {
+                keyframe = true;
+            } else if (_config.gop != -1 &&
                 _encodedFrame % _config.gop == 0) {
                 keyframe = true;
             } else {
                 keyframe = false;
             }
-
+            
             encodeFrameInfo frameinfo;
             frameinfo.in = new char[_config.width * _config.height * 3 / 2];
             frameinfo.out = new char[_config.width * _config.height * 3 / 2];;
             frameinfo.ts = _encodeTs;
             frameinfo.keyframe = keyframe;
-
+            
             if (!fread(frameinfo.in, sizeof(char), _config.width * _config.height * 3 / 2, _config.fin)) {
                 //eof
                 break;
             }
-
+            
             if (_config.froi != NULL) {
                 videoRoiInfo &roiInfo = frameinfo.roiInfo;
                 roiInfo.nFaces = parseFrameFace(_config.froi, roiInfo.sRect, MAX_NUM_OF_FACE_NUMBERS);
                 roiInfo.nMbqp = _config.roiMbQpDelta;
                 roiInfo.nFrameqp = _config.roiFrameQpDelta;
             }
-
             _oriFrame++;
 
             LOGI("encode one, in %p, out: %p, _oriFrame %d _encodedFrame %d", frameinfo.in, frameinfo.out, _oriFrame, _encodedFrame);
+            LOGE("22run_param.encode_speed: %d %p", _config.speed, &_config.speed);
             while( _encoder->encode(frameinfo) == -1) {
                 printf("encode one failed, retry\n");
                 usleep(50000);
@@ -408,10 +422,8 @@ private:
 
 int main(int argc, char *argv[]) {
     
-	signal(SIGSEGV, signal_handler);  /* 为SIGSEGV信号安装新的处理函数 */
+    signal(SIGSEGV, signal_handler);  /* 为SIGSEGV信号安装新的处理函数 */
 
-    int encodedFrame = 0;
-    FILE *fin = NULL, *fout = NULL, *finfo = NULL, *froi = NULL;
     std::string infoFileName;
     videoCodecConfig config;
 
