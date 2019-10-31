@@ -15,7 +15,7 @@
 #define DEFAULT_QP 33
 #define DEFAULT_DENOISE 0
 
-#define ENABLE_TEMPORAL_SCALABILITY 0
+#define ENABLE_TEMPORAL_SCALABILITY 1
 #define MAX_LONG_TERM_FRAMES        8 // used only if ENABLE_TEMPORAL_SCALABILITY==1
 
 #ifdef _WIN32
@@ -24,6 +24,22 @@
 #else
 #define ALIGNED_ALLOC(n, size) aligned_alloc(n, size)
 #endif
+
+static unsigned char get_svc_layer_id(unsigned char* pNalBuffer) {
+    uint8_t tid = 0;
+    if (((pNalBuffer[0] & 0x1f) == 7) ||
+        ((pNalBuffer[0] & 0x1f) == 8) ||
+        ((pNalBuffer[0] & 0x1f) == 6)) {
+        tid = 0;
+    }
+    else {
+        tid = (pNalBuffer[0] & 0xe0) >> 5;
+        LOGE("tid: %d", tid);
+        tid = tid > 0 ? 0 : 1;
+    }
+
+    return tid;
+}
 
 namespace ENC_TEST {
 
@@ -46,7 +62,7 @@ private:
     H264E_persist_t *_enc = NULL;
     H264E_scratch_t *_scratch = NULL;
     H264E_create_param_t _create_param;
-    int _speed = 10;
+    int _frameIdx = 0;
 
     IvideoEncoderObserver *_observer = NULL;
     videoCodecConfig &_config;
@@ -62,11 +78,9 @@ void Minih264EncoderImpl::close_encoder()
 
 bool Minih264EncoderImpl::open_encoder()
 {
-
-
     _create_param.enableNEON = 1;
 #if H264E_SVC_API
-    _create_param.num_layers = 1;
+    _create_param.num_layers = 2;
     _create_param.inter_layer_pred_flag = 1;
     _create_param.inter_layer_pred_flag = 0;
 #endif
@@ -74,8 +88,11 @@ bool Minih264EncoderImpl::open_encoder()
     _create_param.height = _config.height;
     _create_param.width  = _config.width;
     _create_param.max_long_term_reference_frames = 0;
+
 #if ENABLE_TEMPORAL_SCALABILITY
-    _create_param.max_long_term_reference_frames = MAX_LONG_TERM_FRAMES;
+    if (_config.svc) {
+        _create_param.max_long_term_reference_frames = MAX_LONG_TERM_FRAMES;
+    }
 #endif
     _create_param.fine_rate_control_flag = 0;
     _create_param.const_input_flag = 0;
@@ -91,19 +108,19 @@ bool Minih264EncoderImpl::open_encoder()
     if (error)
     {
         LOGE("H264E_sizeof error = %d\n", error);
-        return 0;
+        return _initialized;
     }
 
-    LOGE("sizeof_persist = %d sizeof_scratch = %d\n", sizeof_persist, sizeof_scratch);
+    LOGE("sizeof_persist = %d sizeof_scratch = %d", sizeof_persist, sizeof_scratch);
     _enc     = (H264E_persist_t *)ALIGNED_ALLOC(64, sizeof_persist);
     _scratch = (H264E_scratch_t *)ALIGNED_ALLOC(64, sizeof_scratch);
     error = H264E_init(_enc, &_create_param);
     if (error)
     {
         LOGE("H264E_init error = %d\n", error);
-        return 0;
+        return _initialized;
     }
-    _speed = _config.speed;
+
     LOGI("Minih264EncoderImpl: width %d,height %d,bitrate %d,tempoLayers %d, speed: %d",
         _create_param.width,
         _create_param.height,
@@ -144,7 +161,7 @@ int Minih264EncoderImpl::encode(encodeFrameInfo &frameinfo)
     int sizeof_coded_data;
     run_param.nalu_callback = NULL;
     run_param.frame_type = H264E_FRAME_TYPE_DEFAULT;
-    run_param.encode_speed = _speed; //speed [0..10], 0 means best quality
+    run_param.encode_speed = _config.speed; //speed [0..10], 0 means best quality
 
     //run_param.desired_nalu_bytes = 100;
 
@@ -152,6 +169,41 @@ int Minih264EncoderImpl::encode(encodeFrameInfo &frameinfo)
     run_param.desired_frame_bytes = _config.bitrate/8/_config.fps;
     run_param.qp_min = 10;
     run_param.qp_max = 50;
+#if ENABLE_TEMPORAL_SCALABILITY
+    if (_config.svc) {
+        int i = _frameIdx;
+        int level, logmod = 1;
+        int j, mod = 1 << logmod;
+        static int fresh[200] = {-1,-1,-1,-1};
+
+        run_param.frame_type = H264E_FRAME_TYPE_CUSTOM;
+
+        for (level = logmod; level && (~i & (mod >> level)); level--){}
+
+        run_param.long_term_idx_update = level + 1;
+        if (level == logmod && logmod > 0)
+            run_param.long_term_idx_update = -1;
+        if (level == logmod - 1 && logmod > 1)
+            run_param.long_term_idx_update = 0;
+
+        //if (run_param.long_term_idx_update > logmod) run_param.long_term_idx_update -= logmod+1;
+        //run_param.long_term_idx_update = logmod - 0 - level;
+        //if (run_param.long_term_idx_update > 0)
+        //{
+        //    run_param.long_term_idx_update = logmod - run_param.long_term_idx_update;
+        //}
+        run_param.long_term_idx_use    = fresh[level];
+        LOGE("level: %d, long_term_idx_use: %d", level, fresh[level]);
+        for (j = level; j <= logmod; j++)
+        {
+            fresh[j] = run_param.long_term_idx_update;
+        }
+        if (!i)
+        {
+            run_param.long_term_idx_use = -1;
+        }
+    }
+#endif
 
     //run_param.qp_min = run_param.qp_max = cmdline->qp;
     uint8_t *buf_in = (uint8_t*)(frameinfo.in);
@@ -163,18 +215,26 @@ int Minih264EncoderImpl::encode(encodeFrameInfo &frameinfo)
     LOGE("desired_frame_bytes: %d", run_param.desired_frame_bytes);
     error = H264E_encode(_enc, _scratch, &run_param, &yuv, &coded_data, &sizeof_coded_data);
     assert(!error);
+
+    _frameIdx ++;
+
     long long tock = current_us();
 
     memcpy((unsigned char *)(frameinfo.out), coded_data, sizeof_coded_data);
 
     videoCodecInfo info;
+
     info.blockNum = 0;  //unused
     info.QP = 0;  //unused
     info.frameType = 0; //TODO
     info.size = sizeof_coded_data;
     info.consume = tock - tick;
-    info.priority = 0; //TODO
-    
+
+    int naltype = coded_data[4] & 0x1f;
+    if (naltype == 5 || naltype == 6 || naltype == 7 || naltype == 8)
+        info.frameType = 1;
+
+    info.priority = get_svc_layer_id(coded_data + 4);
     _observer->onFrameEncoded(info, frameinfo);
     return 0;
 
@@ -214,4 +274,3 @@ void Minih264Encoder::reconfig(videoCodecConfig &config)
 }
 
 }
-

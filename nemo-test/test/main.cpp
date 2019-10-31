@@ -1,4 +1,4 @@
-/* 
+/*
 Creat by ivan tsui
 编码器命令行参数
 encoder -s <WxH> -fps <fps> -bitrate <bitrate> -i <input file> -o <output_file>
@@ -9,7 +9,7 @@ demo -c svc -r 512x288 -f 30 -b 128000 -g 30 -i classroom_288_30.yuv
 2 帧类型
 3 帧大小
 4 编码耗时
-5 其他质量信息（QP，宏块个数，各种类型宏块的个数）（Optional） 
+5 其他质量信息（QP，宏块个数，各种类型宏块的个数）（Optional）
 */
 #include <stdio.h>
 #include <unistd.h>
@@ -19,49 +19,49 @@ demo -c svc -r 512x288 -f 30 -b 128000 -g 30 -i classroom_288_30.yuv
 #include <video_codec_interface.h>
 
 #include <signal.h>	    /* for signal */
-#include <execinfo.h> 	/* for backtrace() */
- 
+#include <execinfo.h>	/* for backtrace() */
+
 #define BACKTRACE_SIZE   16
- 
+
 void dump(void)
 {
 	int j, nptrs;
 	void *buffer[BACKTRACE_SIZE];
 	char **strings;
-	
+
 	nptrs = backtrace(buffer, BACKTRACE_SIZE);
-	
+
 	printf("backtrace() returned %d addresses\n", nptrs);
- 
+
 	strings = backtrace_symbols(buffer, nptrs);
 	if (strings == NULL) {
 		perror("backtrace_symbols");
 		exit(EXIT_FAILURE);
 	}
- 
+
 	for (j = 0; j < nptrs; j++)
 		printf("  [%02d] %s\n", j, strings[j]);
- 
+
 	free(strings);
 }
- 
+
 void signal_handler(int signo)
 {
-	
-#if 0	
+
+#if 0
 	char buff[64] = {0x00};
-		
+
 	sprintf(buff,"cat /proc/%d/maps", getpid());
-		
+
 	system((const char*) buff);
-#endif	
- 
+#endif
+
 	printf("\n=========>>>catch signal %d <<<=========\n", signo);
-	
+
 	printf("Dump stack start...\n");
 	dump();
 	printf("Dump stack end...\n");
- 
+
 	signal(signo, SIG_DFL); /* 恢复信号默认处理 */
 	raise(signo);           /* 重新发送信号 */
 }
@@ -86,7 +86,7 @@ struct CodecConfig CodecConfigs[] = {
     {"x264-avc", TYPE_ENC_X264, false},
     {"minih264-svc", TYPE_ENC_MINIH264, true},
     {"minih264-avc", TYPE_ENC_MINIH264, false},
-    
+
 };
 
 void printHelp() {
@@ -119,7 +119,7 @@ void cmd(int argc, char *argv[], videoCodecConfig &config) {
         printHelp();
         exit(0);
     }
-    
+
     for (int cnt = 1; cnt < argc; cnt++) {
         if(strcmp(argv[cnt], "-s")==0) {
             int cnt_ = cnt + 1;
@@ -139,7 +139,7 @@ void cmd(int argc, char *argv[], videoCodecConfig &config) {
         } else if(strcmp(argv[cnt], "-fps") == 0) {
             int cnt_ = cnt + 1;
             if(cnt_ < argc) {
-                sscanf(argv[cnt_], "%f", &config.fps); 
+                sscanf(argv[cnt_], "%f", &config.fps);
             } else {
                 printf("Error. No fps arguments.\n");
                 printHelp();
@@ -149,7 +149,7 @@ void cmd(int argc, char *argv[], videoCodecConfig &config) {
                || strcmp(argv[cnt], "-bitrate") == 0) {
             int cnt_ = cnt + 1;
             if(cnt_ < argc) {
-                sscanf(argv[cnt_], "%d", &config.bitrate); 
+                sscanf(argv[cnt_], "%d", &config.bitrate);
             } else {
                 printf("Error. No bitrate arguments.\n");
                 printHelp();
@@ -159,7 +159,7 @@ void cmd(int argc, char *argv[], videoCodecConfig &config) {
                || strcmp(argv[cnt], "-gop")==0) {
             int cnt_ = cnt + 1;
             if(cnt_ < argc) {
-                sscanf(argv[cnt_], "%d", &config.gop); 
+                sscanf(argv[cnt_], "%d", &config.gop);
             } else {
                 printf("Error. No gop arguments.\n");
                 printHelp();
@@ -199,7 +199,7 @@ void cmd(int argc, char *argv[], videoCodecConfig &config) {
                     }
                 }
                 if(!incompatible) {
-                    printf("Error. codec arguments not incompatible.\n");
+                    printf("Error. codec(%s) arguments not incompatible.\n", argv[cnt_]);
                     printHelp();
                     exit(0);
                 }
@@ -224,7 +224,7 @@ void cmd(int argc, char *argv[], videoCodecConfig &config) {
         } else if(strcmp(argv[cnt], "-mbqp")==0) {
             int cnt_=cnt+1;
             if(cnt_<argc) {
-                sscanf(argv[cnt_], "%d", &config.roiMbQpDelta); 
+                sscanf(argv[cnt_], "%d", &config.roiMbQpDelta);
             } else {
                 printf("Error. No Roi MB QP arguments.\n");
                 printHelp();
@@ -233,7 +233,7 @@ void cmd(int argc, char *argv[], videoCodecConfig &config) {
         } else if(strcmp(argv[cnt], "-frameqp")==0) {
             int cnt_=cnt+1;
             if(cnt_<argc) {
-                sscanf(argv[cnt_], "%d", &config.roiFrameQpDelta); 
+                sscanf(argv[cnt_], "%d", &config.roiFrameQpDelta);
             } else {
                 printf("Error. No Roi Frame QP arguments.\n");
                 printHelp();
@@ -243,7 +243,6 @@ void cmd(int argc, char *argv[], videoCodecConfig &config) {
             int cnt_=cnt+1;
             if(cnt_<argc) {
                 sscanf(argv[cnt_], "%d", &config.speed);
-                LOGE("11run_param.encode_speed: %d %p", config.speed, &config.speed);
             } else {
                 printf("Error. No speed arguments.\n");
                 printHelp();
@@ -287,10 +286,10 @@ static int parseFrameFace(FILE *fp,videoRoiRect *reg, int size)
     int nTag = 0;
     int faceNum = -1;
     int i;
-    
+
     if((nTag = ReadLine(fp,buf)) == 0)
         return 0;
-    
+
     faceNum = atoi(buf[0]);
     printf("faceNum:%d\r\n",faceNum);
     if(faceNum == 0)
@@ -330,14 +329,15 @@ public:
         delete _encoder;
     };
     void onFrameEncoded(videoCodecInfo &encodedInfo, encodeFrameInfo &frameinfo){
-        fwrite(frameinfo.out, sizeof(char), encodedInfo.size, _config.fout);
+        if (1 || encodedInfo.priority == 0)
+            fwrite(frameinfo.out, sizeof(char), encodedInfo.size, _config.fout);
         _encodedFrame++;
         char buf[256] = {0};
         sprintf(buf,"[debug]: frame=%d Type:%s%d Size=%d Bytes Time=%0.2f ms\n",
             _encodedFrame,encodedInfo.frameType==1?"I":"P",encodedInfo.priority,encodedInfo.size,(float)encodedInfo.consume/1000.0f);
         fwrite(buf, 1, strlen(buf), _config.finfo);
         LOGI("%s", buf);
-        
+
         free(frameinfo.out);
         free(frameinfo.in);
 
@@ -362,18 +362,18 @@ public:
             } else {
                 keyframe = false;
             }
-            
+
             encodeFrameInfo frameinfo;
             frameinfo.in = new char[_config.width * _config.height * 3 / 2];
             frameinfo.out = new char[_config.width * _config.height * 3 / 2];;
             frameinfo.ts = _encodeTs;
             frameinfo.keyframe = keyframe;
-            
+
             if (!fread(frameinfo.in, sizeof(char), _config.width * _config.height * 3 / 2, _config.fin)) {
                 //eof
                 break;
             }
-            
+
             if (_config.froi != NULL) {
                 videoRoiInfo &roiInfo = frameinfo.roiInfo;
                 roiInfo.nFaces = parseFrameFace(_config.froi, roiInfo.sRect, MAX_NUM_OF_FACE_NUMBERS);
@@ -383,7 +383,6 @@ public:
             _oriFrame++;
 
             LOGI("encode one, in %p, out: %p, _oriFrame %d _encodedFrame %d", frameinfo.in, frameinfo.out, _oriFrame, _encodedFrame);
-            LOGE("22run_param.encode_speed: %d %p", _config.speed, &_config.speed);
             while( _encoder->encode(frameinfo) == -1) {
                 printf("encode one failed, retry\n");
                 usleep(50000);
@@ -421,7 +420,7 @@ private:
 };
 
 int main(int argc, char *argv[]) {
-    
+
     signal(SIGSEGV, signal_handler);  /* 为SIGSEGV信号安装新的处理函数 */
 
     std::string infoFileName;
@@ -429,7 +428,7 @@ int main(int argc, char *argv[]) {
 
     //memset(&config, 0, sizeof(videoCodecConfig));
     cmd(argc, argv, config);
-    if(config.width == 0 || config.height == 0 
+    if(config.width == 0 || config.height == 0
         || config.fps == 0 || config.bitrate == 0
     /*|| config.gop == 0 */|| config.inFileName==""
     || config.type == TYPE_ENC_NONE) {

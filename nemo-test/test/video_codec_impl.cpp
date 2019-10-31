@@ -11,7 +11,7 @@ long long current_us(void) {
     return ((long long)tv_date.tv_sec * 1000000 + (long long)tv_date.tv_usec);
 }
 
-IvideoEncoder *CreateVideoEncoder(videoCodecConfig config, IvideoEncoderObserver *observer) {
+IvideoEncoder *CreateVideoEncoder(videoCodecConfig &config, IvideoEncoderObserver *observer) {
     IvideoEncoder *encoder = NULL;
     switch(config.type) {
         case TYPE_ENC_OPENH264:
@@ -34,4 +34,3 @@ IvideoEncoder *CreateVideoEncoder(videoCodecConfig config, IvideoEncoderObserver
     }
     return encoder;
 }
-

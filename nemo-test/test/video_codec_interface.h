@@ -81,7 +81,7 @@ typedef struct videoCodecConfig {
     std::string roiFileName = "";
     int roiMbQpDelta = 2;
     int roiFrameQpDelta = 0;
-    
+
     int speed = 10;
 } videoCodecConfig;
 
@@ -118,7 +118,7 @@ public:
     virtual int encode(encodeFrameInfo &frameinfo) = 0;
 };
 
-extern "C" DLL_API IvideoEncoder *CreateVideoEncoder(videoCodecConfig config, IvideoEncoderObserver *observer);
+extern "C" DLL_API IvideoEncoder *CreateVideoEncoder(videoCodecConfig &config, IvideoEncoderObserver *observer);
 extern "C" DLL_API long long current_us(void);
 
 class Lock {

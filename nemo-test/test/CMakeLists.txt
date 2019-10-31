@@ -5,6 +5,9 @@ cmake_minimum_required(VERSION 3.2)
 PROJECT(testEncAllInOne)
 
 add_compile_options(-std=c++11
+                    -flto
+                    -O3
+                    -msse2
                     -Wall
                     -Wextra
                     -ffast-math
